@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class Gem : MonoBehaviour {
 
@@ -15,16 +16,35 @@ public class Gem : MonoBehaviour {
     public int type = 0;
     public float speed = 1f;
     [HideInInspector] public Vector3 targetPoint;
+    public UnityEvent onIdle;
+    public UnityEvent onHover;
+    public UnityEvent onSelected;
 
     public bool IsStopped {
         get {
             return transform.position == targetPoint;
         }
     }
+    public Vector2Int CurTileId {
+        get {
+            return Board.GetTileId(transform.position);
+        }
+    }
 
     private void Update() {
         if (!IsStopped) {
             transform.position = Vector3.MoveTowards(transform.position, targetPoint, speed * Time.deltaTime);
+        }
+        if (Board.GetTileId(Camera.main.ScreenToWorldPoint(Input.mousePosition)) == CurTileId) {
+            if (Input.GetMouseButton(0)) {
+                onSelected.Invoke();
+            }
+            else {
+                onHover.Invoke();
+            }
+        }
+        else {
+            onIdle.Invoke();
         }
     }
 
