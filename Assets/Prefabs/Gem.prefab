@@ -80,7 +80,7 @@ SpriteRenderer:
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
-  m_MaskInteraction: 0
+  m_MaskInteraction: 1
   m_SpriteSortPoint: 0
 --- !u!114 &8885108774349613526
 MonoBehaviour:
@@ -105,7 +105,7 @@ GameObject:
   - component: {fileID: 4952950087340603741}
   - component: {fileID: 7865750091449286225}
   m_Layer: 0
-  m_Name: Gem0
+  m_Name: Gem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -138,8 +138,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ee6b229cbfa0f945b487690cdeff5ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  spriteRenderer: {fileID: 2869154769746283616}
   type: 0
-  speed: 1
+  speed: 3
   targetPoint: {x: 0, y: 0, z: 0}
   onIdle:
     m_PersistentCalls:

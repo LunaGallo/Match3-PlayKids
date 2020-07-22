@@ -16,9 +16,9 @@ public class GameController : MonoBehaviour {
     public int baseGoalScore = 1000;
     public int incGoalScore = 500;
     public float levelDuration = 120f;
-    public List<Gem> gemPrefabs;
+    public Gem gemPrefab;
+    public List<Sprite> gemSprites;
     public Text timerText;
-    public Text levelText;
     public UnityEvent onSelect;
     public UnityEvent onSwap;
     public UnityEvent onClear;
@@ -33,6 +33,10 @@ public class GameController : MonoBehaviour {
         new List<Vector2Int>() {
             new Vector2Int(1,0),
             new Vector2Int(2,-1)
+        },
+        new List<Vector2Int>() {
+            new Vector2Int(1,0),
+            new Vector2Int(3,0)
         },
         new List<Vector2Int>() {
             new Vector2Int(1,1),
@@ -58,7 +62,6 @@ public class GameController : MonoBehaviour {
         if (lastGameWon) {
             curLevel++;
         }
-        levelText.text = "Level " + (curLevel+1);
         curGoalScore = baseGoalScore + (curLevel * incGoalScore);
     }
     private void Update() {
@@ -66,7 +69,7 @@ public class GameController : MonoBehaviour {
             if (AreAllGemsStopped()) {
                 if (IsAnyMatchMade()) {
                     ClearMadeMatches();
-                    FillBoardWithGems();
+                    FillBoardWithGems(/*true*/);
                     isActionHappening = false;
                     onClear.Invoke();
                 }
@@ -110,14 +113,14 @@ public class GameController : MonoBehaviour {
         }
     }
 
-    private Gem NewRandomGem() {
-        return gemPrefabs[Random.Range(0, gemPrefabs.Count)];
-    }
-    private void FillBoardWithGems() {
+    private void FillBoardWithGems(bool debug = false) {
+        if (debug) {
+            Debug.Log("Filling board with gems:");
+        }
         for (int i = 0; i < Board.instance.dimensions.width; i++) {
             List<int> emptySpaces = new List<int>();
             for (int j = 0; j < Board.instance.dimensions.height; j++) {
-                Gem gem = Board.GetGem(new Vector2Int(i, j));
+                Gem gem = Board.GetGem(new Vector2Int(i, j), debug);
                 if (gem == null) {
                     emptySpaces.Add(j);
                 }
@@ -127,14 +130,20 @@ public class GameController : MonoBehaviour {
                     emptySpaces.Add(j);
                 }
             }
+            if (debug) {
+                Debug.Log("  " + emptySpaces.Count + " empty spaces on row " + i);
+            }
             for (int j = 0; j < emptySpaces.Count; j++) {
-                Gem newGem = Instantiate(NewRandomGem(), Board.GetTilePos(new Vector2Int(i, Board.instance.dimensions.height + j)), Quaternion.identity);
+                Gem newGem = Instantiate(gemPrefab, Board.GetTilePos(new Vector2Int(i, Board.instance.dimensions.height + j)), Quaternion.identity);
+                int type = Random.Range(0, gemSprites.Count);
+                newGem.type = type;
+                newGem.SetSprite(gemSprites[type]);
                 newGem.targetPoint = Board.GetTilePos(new Vector2Int(i, emptySpaces[j]));
             }
         }
     }
     private bool AreAllGemsStopped() {
-        return Gem.instanceList.TrueForAll(g => g.IsStopped);
+        return Gem.AllLivingInstances.TrueForAll(g => g.IsStopped);
     }
     private bool IsAnyMatchPossible() {
         foreach (Vector2Int tile in Board.GetAllTiles()) {
@@ -152,12 +161,14 @@ public class GameController : MonoBehaviour {
         return false;
     }
     private bool IsAnyMatchMade() {
-        for (int i = 0; i < Board.instance.dimensions.width-2; i++) {
-            for (int j = 0; j < Board.instance.dimensions.height-2; j++) {
+        for (int i = 0; i < Board.instance.dimensions.width; i++) {
+            for (int j = 0; j < Board.instance.dimensions.height; j++) {
                 Gem gem = Board.GetGem(new Vector2Int(i, j));
-                if ((gem.type == Board.GetGem(new Vector2Int(i, j + 1)).type
+                if ((j < Board.instance.dimensions.height-2
+                    && gem.type == Board.GetGem(new Vector2Int(i, j + 1)).type
                     && gem.type == Board.GetGem(new Vector2Int(i, j + 2)).type)
-                 || (gem.type == Board.GetGem(new Vector2Int(i + 1, j)).type
+                 || (i < Board.instance.dimensions.width - 2
+                    && gem.type == Board.GetGem(new Vector2Int(i + 1, j)).type
                     && gem.type == Board.GetGem(new Vector2Int(i + 2, j)).type)) {
                     return true;
                 }
@@ -183,34 +194,95 @@ public class GameController : MonoBehaviour {
         AddMatchScore(matchIslands);
         foreach (List<Gem> island in matchIslands) {
             foreach (Gem gem in island) {
-                Destroy(gem.gameObject);
+                gem.Clear();
             }
         }
         comboCounter++;
     }
     private List<List<Gem>> GetMatchIslands() {
         List<List<Gem>> result = new List<List<Gem>>();
-        foreach (Vector2Int curTile in Board.GetAllTiles()) {
-            Gem curGem = Board.GetGem(curTile);
-            List<List<Gem>> fittingIslands = result.FindAll(i => i[0].type == curGem.type && i.Exists(g => (g.CurTileId - curGem.CurTileId).sqrMagnitude == 1f));
-            if (fittingIslands != null && fittingIslands.Count > 0) {
-                fittingIslands[0].Add(curGem);
-                for (int i = 1; i < fittingIslands.Count; i++) {
-                    fittingIslands[0].AddRange(fittingIslands[i]);
-                    result.Remove(fittingIslands[i]);
+        for (int i = 0; i < Board.instance.dimensions.width; i++) {
+            int lastType = -1;
+            int lastTypeStart = -1;
+            int lastTypeEnd = -1;
+            for (int j = 0; j < Board.instance.dimensions.height; j++) {
+                Gem gem = Board.GetGem(new Vector2Int(i, j));
+                int curType = gem.type;
+                if (lastType == -1) {
+                    lastType = curType;
+                    lastTypeStart = j;
+                    lastTypeEnd = j+1;
+                }
+                else {
+                    if (lastType == curType) {
+                        lastTypeEnd = j+1;
+                    }
+                    else {
+                        if (lastTypeStart + 3 <= lastTypeEnd) {
+                            List<Gem> newMatch = new List<Gem>();
+                            for (int k = lastTypeStart; k < lastTypeEnd; k++) {
+                                newMatch.Add(Board.GetGem(new Vector2Int(i, k)));
+                            }
+                            result.Add(newMatch);
+                        }
+                        lastType = curType;
+                        lastTypeStart = j;
+                        lastTypeEnd = j + 1;
+                    }
                 }
             }
-            else {
-                result.Add(new List<Gem>() { curGem });
+            if (lastTypeStart + 3 <= lastTypeEnd) {
+                List<Gem> newMatch = new List<Gem>();
+                for (int k = lastTypeStart; k < lastTypeEnd; k++) {
+                    newMatch.Add(Board.GetGem(new Vector2Int(i, k)));
+                }
+                result.Add(newMatch);
             }
         }
-        result.RemoveAll(i => i.Count < 3);
+        for (int j = 0; j < Board.instance.dimensions.height; j++) {
+            int lastType = -1;
+            int lastTypeStart = -1;
+            int lastTypeEnd = -1;
+            for (int i = 0; i < Board.instance.dimensions.width; i++) {
+                Gem gem = Board.GetGem(new Vector2Int(i, j));
+                int curType = gem.type;
+                if (lastType == -1) {
+                    lastType = curType;
+                    lastTypeStart = i;
+                    lastTypeEnd = i + 1;
+                }
+                else {
+                    if (lastType == curType) {
+                        lastTypeEnd = i + 1;
+                    }
+                    else {
+                        if (lastTypeStart + 3 <= lastTypeEnd) {
+                            List<Gem> newMatch = new List<Gem>();
+                            for (int k = lastTypeStart; k < lastTypeEnd; k++) {
+                                newMatch.Add(Board.GetGem(new Vector2Int(k, j)));
+                            }
+                            result.Add(newMatch);
+                        }
+                        lastType = curType;
+                        lastTypeStart = i;
+                        lastTypeEnd = i + 1;
+                    }
+                }
+            }
+            if (lastTypeStart + 3 <= lastTypeEnd) {
+                List<Gem> newMatch = new List<Gem>();
+                for (int k = lastTypeStart; k < lastTypeEnd; k++) {
+                    newMatch.Add(Board.GetGem(new Vector2Int(k, j)));
+                }
+                result.Add(newMatch);
+            }
+        }
         return result;
     }
     private void AddMatchScore(List<List<Gem>> matchIslands) {
         int matchScore = comboBonusScore * comboCounter;
         foreach (List<Gem> island in matchIslands) {
-            matchScore += baseMatchScore + (bonusMatchScore * island.Count-3);
+            matchScore += baseMatchScore + bonusMatchScore * (island.Count-3);
         }
         curScore += matchScore;
         ScorePanel.SetNewScore(curScore);
@@ -233,7 +305,7 @@ public class GameController : MonoBehaviour {
             lastGameWon = false;
             onLost.Invoke();
         }
-        timerText.text = Mathf.CeilToInt(curTimer).ToString() + "s";
+        timerText.text = Mathf.CeilToInt(curTimer).ToString();
     }
 
     public void ReloadScene() {

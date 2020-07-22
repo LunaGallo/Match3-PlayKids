@@ -13,8 +13,12 @@ public class Board : MonoBehaviour {
             yield return p - instance.dimensions.min;
         }
     }
-    public static Gem GetGem(Vector2Int tileId) {
-        return Gem.instanceList.Find(g => GetTileId(g.targetPoint) == tileId);
+    public static Gem GetGem(Vector2Int tileId, bool debug = false) {
+        if (debug) {
+            Debug.Log("  Getting gem at " + tileId);
+            Gem.AllLivingInstances.ForEach(g => Debug.Log("    Checking gem at " + g.CurTileId + " = " + (g.CurTileId == tileId)));
+        }
+        return Gem.AllLivingInstances.Find(g => g.CurTileId == tileId);
     }
     public static Vector3 GetTilePos(Vector2Int tileId) {
         return instance.transform.TransformPoint((Vector2)(tileId + instance.dimensions.min));

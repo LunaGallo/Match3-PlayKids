@@ -12,13 +12,21 @@ public class Gem : MonoBehaviour {
     private void OnDestroy() {
         instanceList.Remove(this);
     }
+    public static List<Gem> AllLivingInstances {
+        get {
+            return instanceList.FindAll(i => i.isAlive);
+        }
+    }
 
+    public SpriteRenderer spriteRenderer;
     public int type = 0;
     public float speed = 1f;
-    [HideInInspector] public Vector3 targetPoint;
+    public Vector3 targetPoint;
     public UnityEvent onIdle;
     public UnityEvent onHover;
     public UnityEvent onSelected;
+
+    private bool isAlive = true;
 
     public bool IsStopped {
         get {
@@ -46,6 +54,14 @@ public class Gem : MonoBehaviour {
         else {
             onIdle.Invoke();
         }
+    }
+
+    public void SetSprite(Sprite sprite) {
+        spriteRenderer.sprite = sprite;
+    }
+    public void Clear() {
+        isAlive = false;
+        Destroy(gameObject);
     }
 
 }
