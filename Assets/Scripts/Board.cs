@@ -33,5 +33,26 @@ public class Board : MonoBehaviour {
     }
 
     public RectInt dimensions;
+    public Vector2 framingMargin;
+    public static Rect FramingBox {
+        get {
+            Rect result = new Rect() {
+                xMin = instance.dimensions.xMin - instance.framingMargin.x - 0.5f,
+                yMin = instance.dimensions.yMin - instance.framingMargin.y - 0.5f,
+                xMax = instance.dimensions.xMax + instance.framingMargin.x - 0.5f,
+                yMax = instance.dimensions.yMax + instance.framingMargin.y - 0.5f
+            };
+            return FitToAspect(result, Camera.main.aspect);
+        }
+    }
+    private static Rect FitToAspect(Rect rect, float aspect) {
+        if (aspect < rect.size.x / rect.size.y) {
+            Vector2 center = rect.center;
+            rect.size = new Vector2(rect.size.x, rect.size.x / aspect);
+            rect.center = center;
+        }
+        return rect;
+    }
+
 
 }

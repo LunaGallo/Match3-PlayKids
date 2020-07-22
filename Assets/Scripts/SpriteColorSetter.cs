@@ -11,8 +11,10 @@ public class SpriteColorSetter : MonoBehaviour {
     }
 
     public void SetBrightness(float newBrightness) {
-        Color.RGBToHSV(spriteRenderer.color, out float h, out float s, out _);
-        spriteRenderer.color = Color.HSVToRGB(h,s,newBrightness);
+        if (spriteRenderer != null) {
+            Color.RGBToHSV(spriteRenderer.color, out float h, out float s, out _);
+            spriteRenderer.color = Color.HSVToRGB(h, s, newBrightness);
+        }
     }
 
 }

@@ -62,7 +62,11 @@ public class GameController : MonoBehaviour {
         if (lastGameWon) {
             curLevel++;
         }
+        else {
+            curLevel = 0;
+        }
         curGoalScore = baseGoalScore + (curLevel * incGoalScore);
+        ScorePanel.SetNewScore(curScore, false);
     }
     private void Update() {
         if (!gameEnded) {

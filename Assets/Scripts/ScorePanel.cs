@@ -9,9 +9,11 @@ public class ScorePanel : MonoBehaviour {
     private void Awake() {
         instance = this;
     }
-    public static void SetNewScore(int newScore) {
+    public static void SetNewScore(int newScore, bool pulse = true) {
         instance.textRenderer.text = newScore.ToString() + " / " + GameController.curGoalScore;
-        instance.pulseTarget.localScale *= instance.pulseIntensity;
+        if (pulse) {
+            instance.pulseTarget.localScale *= instance.pulseIntensity;
+        }
     }
 
     public Text textRenderer;
